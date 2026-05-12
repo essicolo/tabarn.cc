@@ -63,6 +63,17 @@
     pointer-events: none;
     user-select: none;
   }
+  #src-link {
+    position: fixed;
+    right: 4.5rem;
+    bottom: .55rem;
+    font-size: 11px;
+    color: #555;
+    text-decoration: none;
+    letter-spacing: .04em;
+    padding: 2px 6px;
+  }
+  #src-link:hover { color: #999; }
   #contrib-panel {
     order: -1;
     margin-top: 0;
@@ -139,11 +150,12 @@
   </div>
   <div id="contrib-panel">
   <!--<div id="contrib-title">Colle une URL ici pour la voir dans l’iframe</div>-->
-  <input id="contrib-input" type="url" placeholder="https://example.com" autocomplete="off">
-  <iframe id="contrib-frame" src="about:blank" title="Aperçu du lien"></iframe>
+  <input id="contrib-input" type="url" placeholder="https://example.com" autocomplete="off" value="https://ici.radio-canada.ca/info">
+  <iframe id="contrib-frame" src="https://ici.radio-canada.ca/info" title="Aperçu du lien"></iframe>
 </div>
 </div>
 <div id="counter">0</div>
+<a id="src-link" href="https://github.com/essicolo/tabarn.cc" target="_blank" rel="noopener">source</a>
 <script>
 (() => {
   const sacres = [
