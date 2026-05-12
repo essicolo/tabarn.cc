@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>tabarn.cc — défoulage infini</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Générateur infini de sacres québécois.">
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #000;
+    color: #d6d6d6;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 16px;
+    line-height: 1.55;
+    min-height: 100%;
+  }
+  body {
+    padding: 1.5rem 1.25rem 4rem;
+    overflow-x: hidden;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  #main {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  #stream {
+    white-space: pre-wrap;
+    min-width: 0;
+    height: 28vh;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+  }
+  #stream::-webkit-scrollbar { display: none; }
+  .line {
+    opacity: 0;
+    animation: fade .25s ease-out forwards;
+  }
+  .caret {
+    display: inline-block;
+    width: .55ch;
+    background: #d6d6d6;
+    color: transparent;
+    animation: blink 1s steps(1) infinite;
+    margin-left: 1px;
+  }
+  @keyframes fade { to { opacity: 1; } }
+  @keyframes blink { 50% { background: transparent; } }
+  #counter {
+    position: fixed;
+    right: .75rem;
+    bottom: .55rem;
+    font-size: 11px;
+    color: #555;
+    background: rgba(0,0,0,.6);
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: .04em;
+    pointer-events: none;
+    user-select: none;
+  }
+  #contrib-panel {
+    order: -1;
+    margin-top: 0;
+    max-width: 520px;
+    width: 100%;
+  }
+  #contrib-title {
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    color: #aaa;
+  }
+  #contrib-input {
+    margin-bottom: 0.5rem;
+  }
+  #contrib-frame {
+    width: 100%;
+    height: 60vh;
+    min-height: 0;
+  }
+  @media (min-width: 900px) {
+    #main {
+      grid-template-columns: 1fr minmax(460px, 56vw);
+      align-items: start;
+    }
+    #contrib-panel {
+      order: 0;
+      width: 100%;
+      max-width: 56vw;
+      margin-top: 0;
+      position: sticky;
+      top: 1.5rem;
+      align-self: start;
+      background: transparent;
+      padding: 0;
+      border-bottom: none;
+    }
+    #contrib-frame {
+      width: 100%;
+      height: calc(100vh - 14rem);
+      min-height: 520px;
+      max-height: calc(100vh - 8rem);
+    }
+    #stream {
+      height: calc(100vh - 5.5rem);
+    }
+  }
+  #contrib-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid #333;
+    background: #111;
+    color: #eee;
+    margin-bottom: 1rem;
+    font: inherit;
+  }
+  #contrib-input:focus {
+    outline: 1px solid #666;
+  }
+  #contrib-frame {
+    border: 1px solid #333;
+    border-radius: 10px;
+    background: #fff;
+    color-scheme: light;
+  }
+  ::selection { background: #333; color: #fff; }
+</style>
+</head>
+<body>
+<div id="main">
+  <div>
+    <div id="stream"></div><span class="caret">.</span>
+  </div>
+  <div id="contrib-panel">
+  <!--<div id="contrib-title">Colle une URL ici pour la voir dans l’iframe</div>-->
+  <input id="contrib-input" type="url" placeholder="https://example.com" autocomplete="off">
+  <iframe id="contrib-frame" src="about:blank" title="Aperçu du lien"></iframe>
+</div>
+</div>
+<div id="counter">0</div>
+<script>
+(() => {
+  const sacres = [
+    "tabarnak", "tabarnac", "taberslaque",
+    "câlisse", "câlique", "câlibine",
+    "ostie", "hostie", "esti", "asti", "estie",
+    "crisse", "christ", "christie",
+    "ciboire", "cibouère",
+    "sacrament", "sacrifice",
+    "viarge", "vierge",
+    "batince", "baptême",
+    "maudit", "mautadit",
+    "torrieu",
+    "mosus", "mosusse", "moses",
+    "simonaque", "simoniaque",
+    "joualvert",
+    "bonyenne",
+    "yâble", "diable",
+    "saint-sicroche", "saint-cibouère", "saint-sacrement",
+    "marde",
+    "bout d'crisse", "bout d'viarge",
+    "crime",
+    "gériboire",
+    "calvaire"
+  ];
+
+  const prefixes = [
+    "saint", "sainte", "saint-",
+    "maudit",
+    "hostie de", "ostie d'", "esti de", "esti d'",
+    "crisse de", "crisse d'",
+    "tabarnak de", "tabarnak d'",
+    "câlisse de", "câlisse d'",
+    "ciboire de", "ciboire d'",
+    "sacrament de",
+    "viarge de",
+    "bout de", "bout d'",
+    "calvaire de"
+  ];
+
+  const liaisons = [
+    "de", "d'", "de", "d'",        // weighted toward "de"
+    "pis", "pis un",
+    "en", 
+    "à marde de", "de marde de"
+  ];
+
+  const suffixes = [
+    "de marde",
+    "à marde",
+    "de mon cul",
+    "tabarnak",
+    "ostie",
+    "câlisse",
+    "à marde de tabarnak",
+    "en sacrament"
+  ];
+
+  const pick = a => a[(Math.random() * a.length) | 0];
+  const chance = p => Math.random() < p;
+
+  // capitalize first letter, optional "!" or "..." ending
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  function generate() {
+    const parts = [];
+    if (chance(0.55)) parts.push(pick(prefixes));
+    parts.push(pick(sacres));
+
+    // chain extra sacres
+    let chain = 0;
+    while (chance(0.45 - chain * 0.15) && chain < 3) {
+      parts.push(pick(liaisons));
+      parts.push(pick(sacres));
+      chain++;
+    }
+
+    if (chance(0.3)) parts.push(pick(suffixes));
+
+    // join, then fix "d'" + vowel spacing
+    let s = parts.join(" ").replace(/\bd'\s+/g, "d'");
+    s = cap(s);
+
+    const r = Math.random();
+    if (r < 0.55) s += "!";
+    else if (r < 0.72) s += "...";
+    else if (r < 0.85) s += " !";
+    else if (r < 0.93) s += ".";
+    // else: no punctuation
+
+    return s;
+  }
+
+  const stream = document.getElementById("stream");
+  const counterEl = document.getElementById("counter");
+  const contribInput = document.getElementById("contrib-input");
+  const contribFrame = document.getElementById("contrib-frame");
+  const MAX_LINES = 200;
+  let count = 0;
+
+  function setIframeSrc(url) {
+    if (!url) {
+      contribFrame.src = "about:blank";
+      return;
+    }
+    contribFrame.src = url;
+  }
+
+  contribInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      setIframeSrc(contribInput.value.trim());
+    }
+  });
+
+  contribInput.addEventListener("change", () => setIframeSrc(contribInput.value.trim()));
+
+  function emit() {
+    const line = document.createElement("div");
+    line.className = "line";
+    line.textContent = generate();
+    stream.appendChild(line);
+
+    if (stream.childElementCount > MAX_LINES) {
+      stream.removeChild(stream.firstChild);
+    }
+
+    count++;
+    counterEl.textContent = count.toLocaleString("fr-CA");
+
+    stream.scrollTop = stream.scrollHeight;
+
+    // ~300ms with rhythmic variation
+    const base = 120;
+    const jitter = (Math.random() - 0.5) * 220; // ±110ms
+    const extra = chance(0.08) ? 500 : 0;       // occasional pause
+    setTimeout(emit, base + jitter + extra);
+  }
+
+  // kick off
+  setTimeout(emit, 250);
+})();
+</script>
+</body>
+</html>
